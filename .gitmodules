@@ -1,3 +1,6 @@
 [submodule "gib/bundle"]
 	path = gib/bundle
 	url = https://github.com/mornfall/gib-bundle.git
+[submodule "bricks"]
+	path = bricks
+	url = https://github.com/mornfall/bricks-bundle.git
