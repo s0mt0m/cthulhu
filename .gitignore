@@ -30,3 +30,7 @@
 *.exe
 *.out
 *.app
+
+# gib files
+.gib.bin
+_build
