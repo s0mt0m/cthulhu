@@ -1,0 +1,38 @@
+set cc       /usr/bin/cc
+set cxx      /usr/bin/c++
+set cflags   -g -O3
+set cxxflags -std=c++20 -I$(srcdir)/bricks
+add cxxflags -Wall -Wextra
+add cxxflags -fmax-errors=1
+set ldflags
+
+set all
+
+sub? gib/local
+sub  gib/bundle/boot.gib
+
+out gib.manifest
+cmd gib.findsrc $(srcdir) gib.manifest
+
+src sources dirs gib.manifest
+
+out make build directories
+dep gib.manifest
+dep gib.nochange
+cmd gib.nochange /bin/mkdir -p $(dirs) bin
+
+set bin_unit
+
+for src $(sources:test/*.cpp)
+out $(src:*.cpp:$1)
+add all $(out)
+add bin_unit $(out)
+dep make build directories
+let flags $(cxxflags) -I$(srcdir)/src
+cmd gib.wrapcc $(cxx) $(flags) -o $(out) $(srcdir)/$(src)
+
+for bin $(bin_unit)
+out run $(bin)
+add all $(out)
+cmd $(bin)
+
