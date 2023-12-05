@@ -17,58 +17,58 @@ namespace cthu::builder
         stack( word id ) : id( id ) {}
     };
 
+    struct stack_proxy;
+
     struct program
     {
         std::vector< stack > stacks;
         word stack_id = 0;
 
-        struct stack_proxy
+        stack_proxy add_stack();
+        auto build( std::vector< stack_proxy > init ) const;
+    };
+
+    struct stack_proxy
+    {
+        program &p;
+        word id;
+
+        stack_proxy &add( word value )
         {
-            program &p;
-            word id;
-
-            stack &get()
-            {
-                return p.stacks[ id ];
-            }
-
-            stack_proxy &add( word value )
-            {
-                get().data.push_back( value );
-                return *this;
-            }
-        };
-
-        stack_proxy add_stack()
-        {
-            stacks.emplace_back( stack_id++ );
-            return stack_proxy{ *this, stacks.back().id };
-        }
-
-        auto build( std::vector< stack_proxy > init ) const
-        {
-            cthu::program p;
-            std::map< word, word > program_ids;
-
-            for ( auto &s : stacks )
-            {
-                auto id = p.add_stack( cthu::stack( s.data ) );
-                program_ids.emplace( s.id, id );
-            }
-
-            std::vector< word > initials;
-
-            for ( stack_proxy s : init )
-                initials.push_back( program_ids[ s.id ] );
-
-            for ( word i = init.size(); i < 8; ++i )
-                initials.push_back( p.add_stack( {} ) );
-
-            p.set_inits( initials );
-
-            return p;
+            p.stacks[ id ].data.push_back( value );
+            return *this;
         }
     };
+
+    stack_proxy program::add_stack()
+    {
+        stacks.emplace_back( stack_id++ );
+        return stack_proxy{ *this, stacks.back().id };
+    }
+
+    auto program::build( std::vector< stack_proxy > init ) const
+    {
+        cthu::program p;
+        std::map< word, word > program_ids;
+
+        for ( auto &s : stacks )
+        {
+            auto id = p.add_stack( cthu::stack( s.data ) );
+            program_ids.emplace( s.id, id );
+        }
+
+        std::vector< word > initials;
+
+        for ( stack_proxy s : init )
+            initials.push_back( program_ids[ s.id ] );
+
+        for ( word i = init.size(); i < 8; ++i )
+            initials.push_back( p.add_stack( {} ) );
+
+        p.set_inits( initials );
+
+        return p;
+    }
 
 } // namespace cthu::builder
 
