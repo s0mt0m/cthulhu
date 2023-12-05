@@ -30,7 +30,7 @@ namespace cthu
 
         eval( program &p ) : prog( p ) {}
 
-        bool operator()()
+        bool start()
         {
             while ( !prog.halted() )
             {
