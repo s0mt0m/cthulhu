@@ -20,9 +20,7 @@ int main()
         data.add( 2 ).add( 5 );
 
         auto p = b.build( { insn, data } );
-
-        auto e = eval< exec_tag >( p );
-        e();
+        eval< exec_tag >( p ).start();
 
         ASSERT( p.template pop< word >( 1 ) == 7 );
     };
