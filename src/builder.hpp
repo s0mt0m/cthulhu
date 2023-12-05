@@ -3,6 +3,8 @@
 #include "program.hpp"
 #include "types.hpp"
 
+#include <map>
+
 namespace cthu::builder
 {
     struct stack
@@ -12,13 +14,7 @@ namespace cthu::builder
         std::map< word, word > stack_refs;
         const word id;
 
-        stack( std::size_t id ) : id( id ) {}
-
-        stack &add( word value )
-        {
-            data.push_back( value );
-            return *this;
-        }
+        stack( word id ) : id( id ) {}
     };
 
     struct program
@@ -31,23 +27,32 @@ namespace cthu::builder
             program &p;
             word id;
 
-            operator stack &() { return p.stacks[ id ]; }
+            stack &get()
+            {
+                return p.stacks[ id ];
+            }
+
+            stack_proxy &add( word value )
+            {
+                get().data.push_back( value );
+                return *this;
+            }
         };
 
         stack_proxy add_stack()
         {
             stacks.emplace_back( stack_id++ );
-            return { *this, stacks.back() };
+            return stack_proxy{ *this, stacks.back().id };
         }
 
-        program build( std::initializer_list< stack * > init ) const
+        auto build( std::initializer_list< stack * > init ) const
         {
             cthu::program p;
             std::map< word, word > program_ids;
 
             for ( auto &s : stacks )
             {
-                auto id = p.add_stack( s );
+                auto id = p.add_stack( cthu::stack( s.data ) );
                 program_ids.emplace( s.id, id );
             }
 
@@ -60,6 +65,8 @@ namespace cthu::builder
                 initials.push_back( p.add_stack( {} ) );
 
             p.set_inits( initials );
+
+            return p;
         }
     };
 
