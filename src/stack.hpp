@@ -13,13 +13,18 @@ namespace cthu
         word pop()
         {
             const word value = data.back();
-            data.pop();
+            data.pop_back();
             return value;
         }
 
-        push( word value )
+        void push( word value )
         {
             data.push_back( value );
+        }
+
+        bool empty() const
+        {
+            return data.empty();
         }
     };
 
