@@ -27,7 +27,7 @@ namespace cthu
             return stacks.size() - 1;
         }
 
-        void add_inits( const std::vector< words > &ids )
+        void set_inits( const std::vector< word > &ids )
         {
             ASSERT( ids.size() == 8 );
             for ( word i = 0; i < 8; ++i )
