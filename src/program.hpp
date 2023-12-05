@@ -6,7 +6,8 @@ namespace cthu
 {
     struct program
     {
-        std::array< stack > slots;
+        std::array< stack, 8 > slots;
+        std::vector< stack > stacks;
 
         template< typename value_t >
         value_t pop( word pos )
@@ -18,6 +19,19 @@ namespace cthu
         void push( word pos, value_t value )
         {
             slots[ pos ].push( value );
+        }
+
+        word add_stack( stack s )
+        {
+            stacks.push_back( std::move( s ) );
+            return stacks.size() - 1;
+        }
+
+        void add_inits( const std::vector< words > &ids )
+        {
+            ASSERT( ids.size() == 8 );
+            for ( word i = 0; i < 8; ++i )
+                slots[ i ] = std::move( stacks[ ids[ i ] ] );
         }
     };
 
