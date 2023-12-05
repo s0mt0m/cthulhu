@@ -45,7 +45,7 @@ namespace cthu::builder
             return stack_proxy{ *this, stacks.back().id };
         }
 
-        auto build( std::initializer_list< stack * > init ) const
+        auto build( std::vector< stack_proxy > init ) const
         {
             cthu::program p;
             std::map< word, word > program_ids;
@@ -58,8 +58,8 @@ namespace cthu::builder
 
             std::vector< word > initials;
 
-            for ( stack *sp : init )
-                initials.push_back( program_ids[ sp->id ] );
+            for ( stack_proxy s : init )
+                initials.push_back( program_ids[ s.id ] );
 
             for ( word i = init.size(); i < 8; ++i )
                 initials.push_back( p.add_stack( {} ) );
