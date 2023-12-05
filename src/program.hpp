@@ -33,6 +33,16 @@ namespace cthu
             for ( word i = 0; i < 8; ++i )
                 slots[ i ] = std::move( stacks[ ids[ i ] ] );
         }
+
+        bool halted() const
+        {
+            return slots[ 0 ].empty();
+        }
+
+        word next_instruction()
+        {
+            return pop< word >( 0 );
+        }
     };
 
 } // namespace cthu
