@@ -7,6 +7,11 @@
 
 namespace cthu::builder
 {
+    static void append_range( auto &cont, const auto &range )
+    {
+        cont.insert( cont.end(), range.begin(), range.end() );
+    }
+
     struct stack
     {
         std::vector< word > data;
@@ -52,6 +57,12 @@ namespace cthu::builder
         stack_proxy &add( word value )
         {
             p.stacks[ id ].data.push_back( value );
+            return *this;
+        }
+
+        stack_proxy &add( std::initializer_list< word > values )
+        {
+            append_range( p.stacks[ id ].data, values );
             return *this;
         }
 
@@ -142,11 +153,6 @@ namespace cthu::builder
         p.set_inits( initials );
 
         return p;
-    }
-
-    static void append_range( auto &cont, const auto &range )
-    {
-        cont.insert( cont.end(), range.begin(), range.end() );
     }
 
     word stack_builder::create( cthu::program &out, word id )
