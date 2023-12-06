@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <cstdint>
 
 namespace cthu
@@ -44,6 +45,14 @@ namespace cthu
     template<> struct signed_type< builtin_type::byte > : std::true_type { using type = int8_t; };
     template<> struct signed_type< builtin_type::half > : std::true_type { using type = int16_t; };
     template<> struct signed_type< builtin_type::word > : std::true_type { using type = int32_t; };
+
+    using arr_t = std::array< std::string_view, 3 >;
+    static constexpr arr_t builtins{ "byte", "half", "word" };
+
+    constexpr bool is_builtin( std::string_view name )
+    {
+        return std::ranges::find( builtins, name ) != builtins.end();
+    }
 
     constexpr word stid_bits( word opcode ) { return opcode >> 20; }
 

@@ -1,11 +1,17 @@
 #pragma once
 
+#include <brick-assert>
+
 #include "build.hpp"
+#include "types.hpp"
 
 #include <fstream>
+#include <map>
+#include <set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <vector>
 
 namespace cthu
 {
@@ -17,6 +23,22 @@ namespace cthu
 
         std::vector< builder::stack_proxy > parse()
         {
+            if ( !next() || !parse_structures() )
+                return {};
+
+            while ( next() && !line.ends_with( ':' ) )
+            {
+                line.remove_suffix( 1 );
+
+                if ( line.starts_with( '%' ) )
+                    NOT_IMPLEMENTED();
+                else
+                    parse_stack( std::string( line ) );
+            }
+
+            if ( !input.eof() )
+                throw error( "Unexpected line" );
+
             return {};
         }
 
@@ -29,6 +51,81 @@ namespace cthu
         std::string buffer;
         std::string_view line;
         std::size_t line_number = 1;
+
+        std::set< std::string > structs;
+        std::map< std::string, builder::stack_proxy > stacks;
+
+        bool parse_structures()
+        {
+            while ( line.starts_with( ".struct" ) )
+            {
+                const auto stid  = extract_word( line );
+                const auto stdef = extract_word( line );
+
+                if ( stdef != "builtin" )
+                    throw error( "Unexpected structure ", stdef );
+
+                if ( is_builtin( stid ) )
+                    throw error( "Unknown builtin structure ", stid );
+
+                if ( structs.insert( std::string( stid ) ).second )
+                    throw error( "Duplicate structure definition ", stid );
+
+                if ( !next() )
+                    return false;
+            }
+
+            return true;
+        }
+
+        void parse_stack( std::string name )
+        {
+            if ( stacks.contains( name ) )
+                throw error( "Redefinition of stack ", name );
+
+            if ( !next() )
+                return;
+
+            auto s = program.add_stack();
+            stacks.emplace( std::move( name ), s );
+
+            while ( !line.ends_with( ':' ) )
+            {
+                if ( line.starts_with( '$' ) )
+                    s.add( parse_number( line.substr( 1 ) ) );
+                else if ( line.starts_with( '@' ) )
+                {
+                    std::string name( line.substr( 1 ) );
+                    const auto it = stacks.find( name );
+                    if ( it == stacks.end() )
+                        throw error( "Undefined stack ", name );
+
+                    s.add( it->second );
+                }
+                else
+                    NOT_IMPLEMENTED();
+            }
+        }
+
+        word parse_number( std::string_view str ) const
+        {
+            ASSERT( !str.empty() );
+            ASSERT( str.find_first_not_of( '0' ) < 2 );
+
+            word number = 0;
+
+            for ( auto digit : str )
+            {
+                ASSERT( std::isdigit( digit ) );
+                const word next = 10 * number + ( digit - '0' );
+                if ( next < number )
+                    throw error( "Invalid number - overflow" );
+
+                number = next;
+            }
+
+            return number;
+        }
 
         struct parse_error : std::runtime_error
         {
@@ -85,6 +182,21 @@ namespace cthu
             const auto end = str.find_last_not_of( whitespaces );
             if ( end != str.size() - 1 && end != str.npos )
                 str.remove_suffix( str.size() - 1 - end );
+        }
+
+        template< bool trim_left_v = true >
+        static std::string_view extract_word( std::string_view &str )
+        {
+            if constexpr ( trim_left_v )
+                trim_left( str );
+
+            const auto pos = str.find_first_of( whitespaces );
+            const auto len = pos == str.npos ? str.size() : pos;
+
+            const auto word = str.substr( 0, len );
+            str.remove_prefix( len );
+
+            return word;
         }
     };
 
