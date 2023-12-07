@@ -1,5 +1,6 @@
 #pragma once
 
+#include "dict.hpp"
 #include "stack.hpp"
 
 namespace cthu
@@ -7,7 +8,9 @@ namespace cthu
     struct program
     {
         std::array< word, 8 > slots;
+
         std::vector< stack > stacks;
+        std::vector< dictionary > dicts;
 
         template< typename value_t >
         value_t pop( word pos )
@@ -25,6 +28,12 @@ namespace cthu
         {
             stacks.push_back( std::move( s ) );
             return stacks.size() - 1;
+        }
+
+        word add_dict( dictionary d )
+        {
+            dicts.push_back( std::move( d ) );
+            return dicts.size() - 1;
         }
 
         void set_inits( const std::vector< word > &ids )
