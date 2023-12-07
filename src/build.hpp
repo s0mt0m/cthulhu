@@ -7,32 +7,51 @@
 
 namespace cthu::builder
 {
+    using word_list = std::initializer_list< word >;
+
     static void append_range( auto &cont, const auto &range )
     {
         cont.insert( cont.end(), range.begin(), range.end() );
     }
 
     struct ref { bool is_stack; word ref_id; };
-    static constexpr ref stck_ref( word v ) { return { true,  v }; }
+    static constexpr ref stack_ref( word v ) { return { true,  v }; }
 
     bool operator <( ref a, ref b )
     {
         std::uint8_t x = a.is_stack, y = b.is_stack;
         return x < y || ( x == y && a.ref_id < b.ref_id );
-   }
+    }
+
+    struct program;
+    struct stack_proxy;
 
     struct stack
     {
+        const word id;
         std::vector< word > data;
 
         std::map< word, ref > refs;
-        const word id;
 
         stack( word id ) : id( id ) {}
     };
 
-    struct program;
-    struct stack_proxy;
+    struct stack_proxy
+    {
+        stack_proxy &add( word value );
+        stack_proxy &add( word_list values );
+        stack_proxy &add( stack_proxy stack );
+
+    private:
+
+        friend program;
+
+        stack_proxy( std::vector< stack > &stacks, word id )
+            : stacks( stacks ), id( id ) {}
+
+        std::vector< stack > &stacks;
+        word id;
+    };
 
     struct stack_builder
     {
@@ -55,51 +74,10 @@ namespace cthu::builder
     private:
 
         friend stack_builder;
-        friend stack_proxy;
 
         std::vector< stack > stacks;
         word stack_id = 0;
     };
-
-    struct stack_proxy
-    {
-        stack_proxy &add( word value )
-        {
-            p.stacks[ id ].data.push_back( value );
-            return *this;
-        }
-
-        stack_proxy &add( std::initializer_list< word > values )
-        {
-            append_range( p.stacks[ id ].data, values );
-            return *this;
-        }
-
-        stack_proxy &add( stack_proxy stack_ref )
-        {
-            auto &s = p.stacks[ id ];
-
-            s.refs.emplace( s.data.size(), stck_ref( stack_ref.id ) );
-            s.data.push_back( stack_ref.id );
-
-            return *this;
-        }
-
-    private:
-
-        friend program;
-
-        stack_proxy( program &p, word id ) : p( p ), id( id ) {}
-
-        program &p;
-        word id;
-    };
-
-    stack_proxy program::add_stack()
-    {
-        stacks.emplace_back( stack_id++ );
-        return { *this, stacks.back().id };
-    }
 
     enum class color : uint8_t { WHITE, GREY, BLACK };
 
@@ -130,10 +108,10 @@ namespace cthu::builder
 
         std::map< ref, color > marks;
         for ( word i = 0; i < count; ++i )
-            marks[ stck_ref( i ) ] = color::WHITE;
+            marks[ stack_ref( i ) ] = color::WHITE;
 
         for ( word i = 0; i < count; ++i )
-            topo_sort( stck_ref( i ), stacks, sorted, marks );
+            topo_sort( stack_ref( i ), stacks, sorted, marks );
 
         return sorted;
     }
@@ -193,6 +171,34 @@ namespace cthu::builder
 
         blueprints.emplace( id, std::move( new_blueprint ) );
         return out.add_stack( { p.stacks[ id.ref_id ].data } );
+    }
+
+    stack_proxy &stack_proxy::add( word value )
+    {
+        stacks[ id ].data.push_back( value );
+        return *this;
+    }
+
+    stack_proxy &stack_proxy::add( std::initializer_list< word > values )
+    {
+        append_range( stacks[ id ].data, values );
+        return *this;
+    }
+
+    stack_proxy &stack_proxy::add( stack_proxy stack )
+    {
+        const auto ref = stack_ref( stack.id );
+
+        stacks[ id ].refs.emplace( stacks[ id ].data.size(), ref );
+        stacks[ id ].data.push_back( ref.ref_id );
+
+        return *this;
+    }
+
+    stack_proxy program::add_stack()
+    {
+        stacks.emplace_back( stack_id++ );
+        return { stacks, stacks.back().id };
     }
 
 } // namespace cthu::builder
