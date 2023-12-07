@@ -12,11 +12,20 @@ namespace cthu::builder
         cont.insert( cont.end(), range.begin(), range.end() );
     }
 
+    struct ref { bool is_stack; word ref_id; };
+    static constexpr ref stck_ref( word v ) { return { true,  v }; }
+
+    bool operator <( ref a, ref b )
+    {
+        std::uint8_t x = a.is_stack, y = b.is_stack;
+        return x < y || ( x == y && a.ref_id < b.ref_id );
+   }
+
     struct stack
     {
         std::vector< word > data;
 
-        std::map< word, word > stack_refs;
+        std::map< word, ref > refs;
         const word id;
 
         stack( word id ) : id( id ) {}
@@ -29,12 +38,12 @@ namespace cthu::builder
     {
         program &p;
 
-        using info_t = std::tuple< word, word, word >;
-        std::map< word, std::vector< info_t > > blueprints;
+        using info_t = std::tuple< ref, word, ref >;
+        std::map< ref, std::vector< info_t > > blueprints;
 
         stack_builder( auto &prog ) : p( prog ) {}
 
-        word create( cthu::program &out, word id );
+        word create( cthu::program &out, ref id );
     };
 
     struct program
@@ -70,7 +79,7 @@ namespace cthu::builder
         {
             auto &s = p.stacks[ id ];
 
-            s.stack_refs.emplace( s.data.size(), stack_ref.id );
+            s.refs.emplace( s.data.size(), stck_ref( stack_ref.id ) );
             s.data.push_back( stack_ref.id );
 
             return *this;
@@ -94,35 +103,37 @@ namespace cthu::builder
 
     enum class color : uint8_t { WHITE, GREY, BLACK };
 
-    static void topo_sort( word i, auto &stacks, auto &out, auto &marks )
+    static void topo_sort( ref curr, auto &stacks, auto &out, auto &marks )
     {
-        if ( marks[ i ] == color::BLACK )
+        if ( marks[ curr ] == color::BLACK )
             return;
 
-        if ( marks[ i ] == color::GREY )
+        if ( marks[ curr ] == color::GREY )
             ASSERT( false ); // cycles are not allowed
 
-        marks[ i ] = color::GREY;
+        marks[ curr ] = color::GREY;
 
-        for ( auto [ pos, id ] : stacks[ i ].stack_refs )
-            topo_sort( id, stacks, out, marks );
+        for ( auto [ pos, next ] : stacks[ curr.ref_id ].refs )
+            topo_sort( next, stacks, out, marks );
 
-        marks[ i ] = color::BLACK;
-        out.push_back( i );
+        marks[ curr ] = color::BLACK;
+        out.push_back( curr );
     }
 
     // u -> v, v is before u
-    static std::vector< word > topo_sort( auto &stacks )
+    static std::vector< ref > topo_sort( auto &stacks )
     {
         const auto count = stacks.size();
 
-        std::vector< word > sorted;
+        std::vector< ref > sorted;
         sorted.reserve( count );
 
-        std::vector< color > marks( count, color::WHITE );
+        std::map< ref, color > marks;
+        for ( word i = 0; i < count; ++i )
+            marks[ stck_ref( i ) ] = color::WHITE;
 
         for ( word i = 0; i < count; ++i )
-            topo_sort( i, stacks, sorted, marks );
+            topo_sort( stck_ref( i ), stacks, sorted, marks );
 
         return sorted;
     }
@@ -139,7 +150,7 @@ namespace cthu::builder
         for ( auto i : topo_sort( stacks ) )
         {
             auto id = sb.create( p, i );
-            program_ids.emplace( stacks[ i ].id, id );
+            program_ids.emplace( stacks[ i.ref_id ].id, id );
         }
 
         std::vector< word > initials;
@@ -155,33 +166,33 @@ namespace cthu::builder
         return p;
     }
 
-    word stack_builder::create( cthu::program &out, word id )
+    word stack_builder::create( cthu::program &out, ref id )
     {
         std::vector< stack_builder::info_t > new_blueprint;
 
         const auto new_stack = [ this, &out ]( const auto &step )
         {
             auto [ dst, pos, src ] = step;
-            const auto sid = out.add_stack( { p.stacks[ src ].data } );
-            p.stacks[ dst ].data[ pos ] = sid;
+            const auto sid = out.add_stack( { p.stacks[ src.ref_id ].data } );
+            p.stacks[ dst.ref_id ].data[ pos ] = sid;
         };
 
-        for ( auto [ pos, stack_ref ] : p.stacks[ id ].stack_refs )
+        for ( auto [ pos, ref ] : p.stacks[ id.ref_id ].refs )
         {
-            ASSERT( blueprints.contains( stack_ref ) );
-            const auto &steps = blueprints[ stack_ref ];
+            ASSERT( blueprints.contains( ref ) );
+            const auto &steps = blueprints[ ref ];
 
             for ( const auto &step : steps )
                 new_stack( step );
 
             append_range( new_blueprint, steps );
-            new_blueprint.emplace_back( id, pos, stack_ref );
+            new_blueprint.emplace_back( id, pos, ref );
 
             new_stack( new_blueprint.back() );
         }
 
         blueprints.emplace( id, std::move( new_blueprint ) );
-        return out.add_stack( { p.stacks[ id ].data } );
+        return out.add_stack( { p.stacks[ id.ref_id ].data } );
     }
 
 } // namespace cthu::builder
