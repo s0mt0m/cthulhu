@@ -15,7 +15,8 @@ namespace cthu::builder
     }
 
     struct ref { bool is_stack; word ref_id; };
-    static constexpr ref stack_ref( word v ) { return { true,  v }; }
+    static constexpr ref stack_ref( word v ) { return { true, v }; }
+    static constexpr ref dict_ref( word v ) { return { false, v }; }
 
     bool operator <( ref a, ref b )
     {
@@ -25,6 +26,7 @@ namespace cthu::builder
 
     struct program;
     struct stack_proxy;
+    struct dictionary_proxy;
 
     struct stack
     {
@@ -41,16 +43,49 @@ namespace cthu::builder
         stack_proxy &add( word value );
         stack_proxy &add( word_list values );
         stack_proxy &add( stack_proxy stack );
+        stack_proxy &add( dictionary_proxy dict );
 
     private:
 
         friend program;
 
+        stack_proxy &add( ref ref );
+
         stack_proxy( std::vector< stack > &stacks, word id )
             : stacks( stacks ), id( id ) {}
 
         std::vector< stack > &stacks;
-        word id;
+        const word id;
+    };
+
+    struct dictionary
+    {
+        const word id;
+        std::map< word, stack_proxy > data;
+
+        std::map< std::pair< word, word >, ref > refs;
+
+        dictionary( word id ) : id( id ) {}
+    };
+
+    struct dictionary_proxy
+    {
+        dictionary_proxy &add( word idx, word value );
+        dictionary_proxy &add( word idx, word_list values );
+        dictionary_proxy &add( word idx, stack_proxy stack );
+        dictionary_proxy &add( word idx, dictionary_proxy dict );
+
+    private:
+
+        friend program;
+        friend stack_proxy;
+
+        dictionary_proxy( std::vector< stack_proxy > &stacks, word id )
+            : stacks( stacks ), id( id )
+        {}
+
+        std::vector< stack_proxy > &stacks;
+        const word id;
     };
 
     struct stack_builder
@@ -68,6 +103,8 @@ namespace cthu::builder
     struct program
     {
         stack_proxy add_stack();
+        dictionary_proxy add_dict();
+
         auto build( std::vector< stack_proxy > init );
         void clear() { stacks.clear(); stack_id = 0; }
 
@@ -76,7 +113,11 @@ namespace cthu::builder
         friend stack_builder;
 
         std::vector< stack > stacks;
+        std::vector< stack_proxy > stack_proxies;
+        std::vector< dictionary > dicts;
+
         word stack_id = 0;
+        word dict_id = 0;
     };
 
     enum class color : uint8_t { WHITE, GREY, BLACK };
@@ -179,26 +220,66 @@ namespace cthu::builder
         return *this;
     }
 
-    stack_proxy &stack_proxy::add( std::initializer_list< word > values )
+    stack_proxy &stack_proxy::add( word_list values )
     {
         append_range( stacks[ id ].data, values );
         return *this;
     }
 
-    stack_proxy &stack_proxy::add( stack_proxy stack )
+    stack_proxy &stack_proxy::add( ref ref )
     {
-        const auto ref = stack_ref( stack.id );
-
         stacks[ id ].refs.emplace( stacks[ id ].data.size(), ref );
         stacks[ id ].data.push_back( ref.ref_id );
 
         return *this;
     }
 
+    stack_proxy &stack_proxy::add( stack_proxy stack )
+    {
+        return add( stack_ref( stack.id ) );
+    }
+
+    stack_proxy &stack_proxy::add( dictionary_proxy dict )
+    {
+        return add( dict_ref( dict.id ) );
+    }
+
+    dictionary_proxy &dictionary_proxy::add( word idx, word value )
+    {
+        stacks[ idx ].add( value );
+        return *this;
+    }
+
+    dictionary_proxy &dictionary_proxy::add( word idx, word_list values )
+    {
+        stacks[ idx ].add( values );
+        return *this;
+    }
+
+    dictionary_proxy &dictionary_proxy::add( word idx, stack_proxy stack )
+    {
+        stacks[ idx ].add( stack );
+        return *this;
+    }
+
+    dictionary_proxy &dictionary_proxy::add( word idx, dictionary_proxy dict )
+    {
+        stacks[ idx ].add( dict );
+        return *this;
+    }
+
     stack_proxy program::add_stack()
     {
         stacks.emplace_back( stack_id++ );
-        return { stacks, stacks.back().id };
+        stack_proxies.push_back( stack_proxy( stacks, stacks.back().id ) );
+
+        return stack_proxies.back();
+    }
+
+    dictionary_proxy program::add_dict()
+    {
+        dicts.emplace_back( dict_id++ );
+        return { stack_proxies, dicts.back().id };
     }
 
 } // namespace cthu::builder
