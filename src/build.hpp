@@ -79,13 +79,13 @@ namespace cthu::builder
         stack_proxy add_stack();
         dictionary_proxy add_dict();
 
-        auto build( std::vector< stack_proxy > init );
+        auto build( std::vector< stack_proxy > init ) const;
         void clear() { stacks.clear(); stack_id = 0; }
 
     private:
 
-        word copy_stack( cthu::program &out, word id );
-        word copy_dict( cthu::program &out, word id );
+        word copy_stack( cthu::program &out, const stack &s ) const;
+        word copy_dict( cthu::program &out, const dictionary &d ) const;
 
         std::vector< stack > stacks;
         std::vector< dictionary > dicts;
@@ -94,23 +94,52 @@ namespace cthu::builder
         word dict_id = 0;
     };
 
-    auto program::build( std::vector< stack_proxy > init )
+    auto program::build( std::vector< stack_proxy > init ) const
     {
         ASSERT( init.size() <= 8 );
 
         cthu::program p;
+        std::map< word, word > program_ids;
+
+        for ( const auto &s : stacks )
+            program_ids.emplace( s.id, copy_stack( p, s ) );
+
+        for ( const auto &d : dicts )
+            copy_dict( p, d );
+
+        std::vector< word > initials;
+        for ( auto s : init )
+            initials.push_back( program_ids.at( s.id ) );
+
+        while ( initials.size() < 8 )
+            initials.push_back( p.add_stack( {} ) );
+
+        p.set_inits( initials );
 
         return p;
     }
 
-    word program::copy_stack( cthu::program &out, word id )
+    word program::copy_stack( cthu::program &out, const stack &s ) const
     {
-        return 0;
+        auto data = s.data;
+
+        for ( auto pos : s.stack_refs )
+            data[ pos ] = copy_stack( out, s.data[ pos ] );
+
+        for ( auto pos : s.dict_refs )
+            data[ pos ] = copy_dict( out, s.data[ pos ] );
+
+        return out.add_stack( std::move( data ) );
     }
 
-    word program::copy_dict( cthu::program &out, word id )
+    word program::copy_dict( cthu::program &out, const dictionary &d ) const
     {
-        return 0;
+        std::map< word, word > data;
+
+        for ( auto [ pos, ref ] : d.data )
+            data.emplace( pos, copy_stack( out, ref.id ) );
+
+        return out.add_dict( std::move( data ) );
     }
 
     stack_proxy &stack_proxy::add( word value )
