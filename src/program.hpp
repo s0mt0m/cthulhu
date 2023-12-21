@@ -24,15 +24,15 @@ namespace cthu
             stacks[ slots[ pos ] ].push( value );
         }
 
-        word add_stack( stack s )
+        word add_stack( std::vector< word > data )
         {
-            stacks.push_back( std::move( s ) );
+            stacks.emplace_back( std::move( data ) );
             return stacks.size() - 1;
         }
 
-        word add_dict( dictionary d )
+        word add_dict( std::map< word, word > data )
         {
-            dicts.push_back( std::move( d ) );
+            dicts.emplace_back( stacks, std::move( data ) );
             return dicts.size() - 1;
         }
 
