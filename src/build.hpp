@@ -63,28 +63,23 @@ namespace cthu::builder
         const word id;
         std::map< word, stack_proxy > data;
 
-        std::map< std::pair< word, word >, ref > refs;
-
         dictionary( word id ) : id( id ) {}
     };
 
     struct dictionary_proxy
     {
-        dictionary_proxy &add( word idx, word value );
-        dictionary_proxy &add( word idx, word_list values );
-        dictionary_proxy &add( word idx, stack_proxy stack );
-        dictionary_proxy &add( word idx, dictionary_proxy dict );
+        dictionary_proxy &set( word idx, stack_proxy stack );
 
     private:
 
         friend program;
         friend stack_proxy;
 
-        dictionary_proxy( std::vector< stack_proxy > &stacks, word id )
-            : stacks( stacks ), id( id )
+        dictionary_proxy( std::vector< dictionary > &dicts, word id )
+            : dicts( dicts ), id( id )
         {}
 
-        std::vector< stack_proxy > &stacks;
+        std::vector< dictionary > &dicts;
         const word id;
     };
 
@@ -244,42 +239,34 @@ namespace cthu::builder
         return add( dict_ref( dict.id ) );
     }
 
-    dictionary_proxy &dictionary_proxy::add( word idx, word value )
-    {
-        stacks[ idx ].add( value );
         return *this;
     }
 
-    dictionary_proxy &dictionary_proxy::add( word idx, word_list values )
+    stack_proxy &stack_proxy::add( dictionary_proxy dict )
     {
         stacks[ idx ].add( values );
         return *this;
     }
 
-    dictionary_proxy &dictionary_proxy::add( word idx, stack_proxy stack )
-    {
-        stacks[ idx ].add( stack );
         return *this;
     }
 
-    dictionary_proxy &dictionary_proxy::add( word idx, dictionary_proxy dict )
+    dictionary_proxy &dictionary_proxy::set( word idx, stack_proxy stack )
     {
-        stacks[ idx ].add( dict );
+        dicts[ id ].data.emplace( idx, stack );
         return *this;
     }
 
     stack_proxy program::add_stack()
     {
         stacks.emplace_back( stack_id++ );
-        stack_proxies.push_back( stack_proxy( stacks, stacks.back().id ) );
-
-        return stack_proxies.back();
+        return { stacks, stacks.back().id };
     }
 
     dictionary_proxy program::add_dict()
     {
         dicts.emplace_back( dict_id++ );
-        return { stack_proxies, dicts.back().id };
+        return { dicts, dicts.back().id };
     }
 
 } // namespace cthu::builder
