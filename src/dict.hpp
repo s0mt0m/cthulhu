@@ -8,21 +8,30 @@ namespace cthu
 {
     struct dictionary
     {
-        std::map< word, stack > data;
+        std::vector< stack > &stacks;
+        std::map< word, word > data;
+
+        dictionary( std::vector< stack > &stacks )
+            : stacks( stacks )
+        {}
+
+        dictionary( std::vector< stack > &stacks, std::map< word, word > data )
+            : stacks( stacks ), data( data )
+        {}
 
         word pop( word idx )
         {
-            return data.at( idx ).pop();
+            return stacks[ data.at( idx ) ].pop();
         }
 
         void push( word idx, word value )
         {
-            data.at( idx ).push( value );
+            stacks[ data.at( idx ) ].push( value );
         }
 
         bool empty( word idx ) const
         {
-            return data.at( idx ).empty();
+            return stacks[ data.at( idx ) ].empty();
         }
     };
 
