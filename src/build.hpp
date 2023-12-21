@@ -74,16 +74,14 @@ namespace cthu::builder
         const word id;
     };
 
-    struct stack_builder
+    struct replicator
     {
         program &p;
 
-        using info_t = std::tuple< ref, word, ref >;
-        std::map< ref, std::vector< info_t > > blueprints;
+        replicator( auto &prog ) : p( prog ) {}
 
-        stack_builder( auto &prog ) : p( prog ) {}
-
-        word create( cthu::program &out, ref id );
+        word copy_stack( cthu::program &out, word id );
+        word copy_dict( cthu::program &out, word id );
     };
 
     struct program
@@ -96,7 +94,7 @@ namespace cthu::builder
 
     private:
 
-        friend stack_builder;
+        friend replicator;
 
         std::vector< stack > stacks;
         std::vector< dictionary > dicts;
@@ -114,13 +112,14 @@ namespace cthu::builder
         return p;
     }
 
-    word stack_builder::create( cthu::program &out, ref id )
+    word replicator::copy_stack( cthu::program &out, word id )
     {
         return 0;
     }
 
-        blueprints.emplace( id, std::move( new_blueprint ) );
-        return out.add_stack( { p.stacks[ id.ref_id ].data } );
+    word replicator::copy_dict( cthu::program &out, word id )
+    {
+        return 0;
     }
 
     stack_proxy &stack_proxy::add( word value )
