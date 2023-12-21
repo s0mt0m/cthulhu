@@ -45,11 +45,6 @@ inline namespace types
     template<> struct bitvec_type< builtin_type::half > : std::true_type { using type = types::half; };
     template<> struct bitvec_type< builtin_type::word > : std::true_type { using type = types::word; };
 
-    template< builtin_type > struct signed_type : std::false_type {};
-    template<> struct signed_type< builtin_type::byte > : std::true_type { using type = int8_t; };
-    template<> struct signed_type< builtin_type::half > : std::true_type { using type = int16_t; };
-    template<> struct signed_type< builtin_type::word > : std::true_type { using type = int32_t; };
-
     using arr_t = std::array< std::string_view, 3 >;
     static constexpr arr_t builtins{ "byte", "half", "word" };
 
