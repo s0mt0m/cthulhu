@@ -14,16 +14,6 @@ namespace cthu::builder
         cont.insert( cont.end(), range.begin(), range.end() );
     }
 
-    struct ref { bool is_stack; word ref_id; };
-    static constexpr ref stack_ref( word v ) { return { true, v }; }
-    static constexpr ref dict_ref( word v ) { return { false, v }; }
-
-    bool operator <( ref a, ref b )
-    {
-        std::uint8_t x = a.is_stack, y = b.is_stack;
-        return x < y || ( x == y && a.ref_id < b.ref_id );
-    }
-
     struct program;
     struct stack_proxy;
     struct dictionary_proxy;
@@ -33,7 +23,8 @@ namespace cthu::builder
         const word id;
         std::vector< word > data;
 
-        std::map< word, ref > refs;
+        std::vector< word > stack_refs;
+        std::vector< word > dict_refs;
 
         stack( word id ) : id( id ) {}
     };
@@ -48,11 +39,11 @@ namespace cthu::builder
     private:
 
         friend program;
-
-        stack_proxy &add( ref ref );
+        friend dictionary_proxy;
 
         stack_proxy( std::vector< stack > &stacks, word id )
-            : stacks( stacks ), id( id ) {}
+            : stacks( stacks ), id( id )
+        {}
 
         std::vector< stack > &stacks;
         const word id;
@@ -221,32 +212,20 @@ namespace cthu::builder
         return *this;
     }
 
-    stack_proxy &stack_proxy::add( ref ref )
-    {
-        stacks[ id ].refs.emplace( stacks[ id ].data.size(), ref );
-        stacks[ id ].data.push_back( ref.ref_id );
-
-        return *this;
-    }
-
     stack_proxy &stack_proxy::add( stack_proxy stack )
     {
-        return add( stack_ref( stack.id ) );
-    }
-
-    stack_proxy &stack_proxy::add( dictionary_proxy dict )
-    {
-        return add( dict_ref( dict.id ) );
-    }
+        const auto pos = stacks[ id ].data.size();
+        stacks[ id ].stack_refs.emplace_back( pos );
+        stacks[ id ].data.push_back( stack.id );
 
         return *this;
     }
 
     stack_proxy &stack_proxy::add( dictionary_proxy dict )
     {
-        stacks[ idx ].add( values );
-        return *this;
-    }
+        const auto pos = stacks[ id ].data.size();
+        stacks[ id ].dict_refs.emplace_back( pos );
+        stacks[ id ].data.push_back( dict.id );
 
         return *this;
     }
