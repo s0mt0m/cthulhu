@@ -74,16 +74,6 @@ namespace cthu::builder
         const word id;
     };
 
-    struct replicator
-    {
-        program &p;
-
-        replicator( auto &prog ) : p( prog ) {}
-
-        word copy_stack( cthu::program &out, word id );
-        word copy_dict( cthu::program &out, word id );
-    };
-
     struct program
     {
         stack_proxy add_stack();
@@ -94,7 +84,8 @@ namespace cthu::builder
 
     private:
 
-        friend replicator;
+        word copy_stack( cthu::program &out, word id );
+        word copy_dict( cthu::program &out, word id );
 
         std::vector< stack > stacks;
         std::vector< dictionary > dicts;
@@ -112,12 +103,12 @@ namespace cthu::builder
         return p;
     }
 
-    word replicator::copy_stack( cthu::program &out, word id )
+    word program::copy_stack( cthu::program &out, word id )
     {
         return 0;
     }
 
-    word replicator::copy_dict( cthu::program &out, word id )
+    word program::copy_dict( cthu::program &out, word id )
     {
         return 0;
     }
