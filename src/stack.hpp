@@ -10,6 +10,12 @@ namespace cthu
     {
         std::vector< word > data;
 
+        stack() = default;
+
+        stack( std::vector< word > data )
+            : data( std::move( data ) )
+        {}
+
         word pop()
         {
             const word value = data.back();
