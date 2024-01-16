@@ -21,6 +21,15 @@ namespace cthu
             return ( opcode >> ( 4 * idx ) ) & utils::ones< 4 >;
     }
 
+    template< word count = 3 >
+    constexpr auto bvec_args( word opcode )
+    {
+        return [ = ]< word... idx >( std::integer_sequence< word, idx... > )
+        {
+            return std::make_tuple( bvec_arg< idx >( opcode )... );
+        }( std::make_integer_sequence< word, count >{} );
+    }
+
     consteval word make_opcode( word stid, word opid )
     {
         if ( stid == 0 )
