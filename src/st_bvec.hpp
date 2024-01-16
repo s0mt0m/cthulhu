@@ -22,6 +22,17 @@ namespace cthu
             return true;
         }
 
+        template< typename from, typename to >
+        static bool cast( program &p, word opcode )
+        {
+            const auto [ in, out ] = bvec_args< 2 >( opcode );
+
+            const to value = p.template pop< from >( in );
+            p.push( out, value );
+
+            return true;
+        }
+
         static bool apply( program &p, word opcode )
         {
             switch ( bvec_op( opcode ) )
@@ -57,6 +68,20 @@ namespace cthu
 
                 #undef BINARY_U
                 #undef BINARY_S
+
+
+                #define CAST( FROM, TO ) cast< FROM, TO >( p, opcode )
+
+                case bvec_zext_b<>:  return CAST( value_t,  byte );
+                case bvec_zext_h<>:  return CAST( value_t,  half );
+
+                case bvec_sext_b<>:  return CAST( signed_t, byte );
+                case bvec_sext_h<>:  return CAST( signed_t, half );
+
+                case bvec_trunc_h<>: return CAST( value_t,  half );
+                case bvec_trunc_w<>: return CAST( value_t,  word );
+
+                #undef CAST
 
                 default: UNREACHABLE( opcode, bvec_op( opcode ) );
             }
