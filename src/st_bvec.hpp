@@ -15,10 +15,12 @@ namespace cthu
         template< typename impl_t >
         static bool binary( program &p, word opcode, impl_t impl )
         {
-            value_t a = p.template pop< value_t >( bvec_arg< 0 >( opcode ) ),
-                    b = p.template pop< value_t >( bvec_arg< 1 >( opcode ) );
+            const auto [ in1, in2, out ] = bvec_args< 3 >( opcode );
 
-            p.push( bvec_arg< 2 >( opcode ), value_t( impl( a, b ) ) );
+            const value_t a = p.template pop< value_t >( in1 ),
+                          b = p.template pop< value_t >( in2 );
+            p.push( out, value_t( impl( a, b ) ) );
+
             return true;
         }
 
@@ -66,9 +68,20 @@ namespace cthu
                 case bvec_sgt<>:  return BINARY_S( >  );
                 case bvec_sge<>:  return BINARY_S( >= );
 
+                case bvec_shl<>:  return BINARY_U( << );
+                case bvec_lshr<>: return BINARY_U( >> );
+                case bvec_ashr<>: return BINARY_S( >> );
+
                 #undef BINARY_U
                 #undef BINARY_S
 
+                case bvec_neg<>:
+                {
+                    const auto [ in, out ] = bvec_args< 2 >( opcode );
+                    p.push( out, ~p.template pop< value_t >( in ) );
+
+                    return true;
+                }
 
                 #define CAST( FROM, TO ) cast< FROM, TO >( p, opcode )
 
