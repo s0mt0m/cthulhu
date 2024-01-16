@@ -26,7 +26,7 @@ namespace cthu
     {
         return [ = ]< word... idx >( std::integer_sequence< word, idx... > )
         {
-            return std::make_tuple( stck_arg< idx >( opcode )... );
+            return std::make_tuple( bvec_arg< idx >( opcode )... );
         }( std::make_integer_sequence< word, count >{} );
     }
 
