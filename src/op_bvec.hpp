@@ -1,26 +1,24 @@
 #pragma once
 
 #include "types.hpp"
+#include "utils.hpp"
 
 #include <cassert>
 
 namespace cthu
 {
-    template< word count >
-    constexpr word ones = ( 1u << count ) - 1;
-
     constexpr word bvec_op( word opcode )
     {
-        return ( opcode >> 12 ) & ones< 8 >;
+        return ( opcode >> 12 ) & utils::ones< 8 >;
     }
 
     template< word idx >
     constexpr word bvec_arg( word opcode )
     {
         if constexpr ( idx == 2 )
-            return opcode & ones< 4 >;
+            return opcode & utils::ones< 4 >;
         else
-            return ( opcode >> ( 4 * idx ) ) & ones< 4 >;
+            return ( opcode >> ( 4 * idx ) ) & utils::ones< 4 >;
     }
 
     consteval word make_opcode( word stid, word opid )
