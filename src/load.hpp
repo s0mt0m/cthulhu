@@ -5,12 +5,15 @@
 #include "build.hpp"
 #include "types.hpp"
 
+#include <algorithm>
 #include <fstream>
+#include <iterator>
 #include <map>
 #include <set>
 #include <stdexcept>
 #include <string>
 #include <string_view>
+#include <ranges>
 #include <vector>
 
 namespace cthu
@@ -39,6 +42,9 @@ namespace cthu
             if ( !input.eof() )
                 throw error( "Unexpected line" );
 
+            if ( auto undefined = get_undefined_stacks(); undefined.empty() )
+                throw error( "Stacks not declared: ", undefined );
+
             return {};
         }
 
@@ -53,6 +59,7 @@ namespace cthu
         std::size_t line_number = 1;
 
         std::set< std::string > structs;
+        std::set< std::string > declared_stacks;
         std::map< std::string, builder::stack_proxy > stacks;
 
         bool parse_structures()
@@ -80,7 +87,7 @@ namespace cthu
 
         void parse_stack( std::string name )
         {
-            if ( stacks.contains( name ) )
+            if ( declared_stacks.insert( name ).second )
                 throw error( "Redefinition of stack ", name );
 
             if ( !next() )
@@ -94,14 +101,7 @@ namespace cthu
                 if ( line.starts_with( '$' ) )
                     s.add( parse_number( line.substr( 1 ) ) );
                 else if ( line.starts_with( '@' ) )
-                {
-                    std::string name( line.substr( 1 ) );
-                    const auto it = stacks.find( name );
-                    if ( it == stacks.end() )
-                        throw error( "Undefined stack ", name );
-
-                    s.add( it->second );
-                }
+                    s.add( get_stack( std::string( line.substr( 1 ) ) ) );
                 else
                     NOT_IMPLEMENTED();
             }
@@ -197,6 +197,27 @@ namespace cthu
             str.remove_prefix( len );
 
             return word;
+        }
+
+        builder::stack_proxy get_stack( std::string name )
+        {
+            if ( auto it = stacks.find( name ); it != stacks.end() )
+                return it->second;
+
+            const auto id = program.add_stack();
+            stacks.emplace( std::move( name ), id );
+            return id;
+        }
+
+        std::vector< std::string > get_undefined_stacks()
+        {
+            std::vector< std::string > undefined;
+
+            auto output = std::back_inserter( undefined );
+            std::ranges::set_difference( std::views::keys( stacks ),
+                                         declared_stacks, output );
+
+            return undefined;
         }
     };
 
