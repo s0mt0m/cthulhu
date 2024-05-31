@@ -45,8 +45,36 @@ inline namespace types
     template<> struct bitvec_type< builtin_type::half > : std::true_type { using type = types::half; };
     template<> struct bitvec_type< builtin_type::word > : std::true_type { using type = types::word; };
 
-    using arr_t = std::array< std::string_view, 3 >;
-    static constexpr arr_t builtins{ "byte", "half", "word" };
+    static constexpr std::array _builtins
+    {
+        "cchar",  "ucchar",
+        "cshort", "ucshort",
+        "cint",   "ucint",
+        "clong",  "uclong",
+
+        "cbool", "cptr",
+
+        "conv8_8",  "conv8_16",  "conv8_32",  "conv8_64",
+        "conv16_8", "conv16_16", "conv16_32", "conv16_64",
+        "conv32_8", "conv32_16", "conv32_32", "conv32_64",
+        "conv64_8", "conv64_16", "conv64_32", "conv64_64",
+
+        "code", "seq",
+
+        "func",
+
+        "mem",
+        "macc8", "macc16", "macc32", "macc64",
+    };
+
+    static constexpr std::array builtins = []()
+    {
+        std::array< std::string_view, _builtins.size() > arr;
+        for ( std::size_t i = 0; i < arr.size(); ++i )
+            arr[ i ] = _builtins[ i ];
+
+        return arr;
+    }();
 
     constexpr bool is_builtin( std::string_view name )
     {
