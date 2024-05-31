@@ -6,7 +6,8 @@ namespace cthu
 {
     struct program
     {
-        std::array< stack > slots;
+        std::array< stack, 8 > slots;
+        std::vector< stack > stacks;
 
         template< typename value_t >
         value_t pop( word pos )
